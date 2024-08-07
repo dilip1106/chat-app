@@ -1,5 +1,6 @@
 import Conversation from "../models/conversation.model.js";
 import Message from "../models/message.model.js";
+import { getReceiverSocketId,io } from "../socket/socket.js";
 
 export const sendMessage = async (req, res) => {
   try {
@@ -23,39 +24,39 @@ export const sendMessage = async (req, res) => {
       message,
     });
 
-    if(newMessage){
+    if (newMessage) {
       conversation.messages.push(newMessage._id);
     }
 
-    //SOCKET IO functionality will go here
-
     // await conversation.save();
-		// await newMessage.save();  
+    // await newMessage.save();
 
     //this will run in parallel
     await Promise.all([conversation.save(), newMessage.save()]);
-
+    //SOCKET IO functionality will go here
+    const receiverSocketId = getReceiverSocketId(receiverId);
+    if (receiverSocketId) {
+      // io.to(<socket_id>).emit() used to send events to specific client
+      io.to(receiverSocketId).emit("newMessage", newMessage);
+    }
 
     res.status(201).json(newMessage);
-
   } catch (error) {
     console.log("Error in sendMessages controller: ", error.message);
     res.status(500).json({ error: ":Internal Server error" });
   }
 };
 
-
-export const getMessages = async (req,res) => {
+export const getMessages = async (req, res) => {
   try {
-    
-    const {id:userToChatId} = req.params;
+    const { id: userToChatId } = req.params;
     const senderId = req.user._id;
 
     const conversation = await Conversation.findOne({
-      participants:{$all: [senderId,userToChatId]},
-    }).populate("messages");//NOT REFRENCE BUT THE ACTUAL ARRAY
+      participants: { $all: [senderId, userToChatId] },
+    }).populate("messages"); //NOT REFRENCE BUT THE ACTUAL ARRAY
 
-    if(!conversation) return res.status(200).json([]);
+    if (!conversation) return res.status(200).json([]);
 
     const messages = conversation.messages;
     res.status(200).json(messages);
@@ -63,4 +64,4 @@ export const getMessages = async (req,res) => {
     console.log("Error in getMessages controller: ", error.message);
     res.status(500).json({ error: ":Internal Server error" });
   }
-} 
+};
