@@ -15,7 +15,7 @@ export const SocketContextProvider = ({ children }) => {
     const { authUser } = useAuthContext();
     useEffect(() => {
         if (authUser) {
-			const socket = io("https://vibechat-4vdm.onrender.com",{
+			const socket = io("https://vibechat-w5wb.onrender.com/",{
                 query:{
                     userId:authUser._id,
                 }
